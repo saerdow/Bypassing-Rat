@@ -95,54 +95,6 @@ local function AddGradient(obj, color1, color2)
 end
 
 -- ==========================================
--- СОЗДАНИЕ СТИЛЬНОГО ВСТУПИТЕЛЬНОГО МЕНЮ (INTRO)
--- ==========================================
-local IntroGui = Instance.new("ScreenGui")
-IntroGui.Name = "BypassedIntroGui"
-IntroGui.Parent = game.CoreGui
-
-local IntroFrame = Instance.new("Frame")
-IntroFrame.Name = "IntroFrame"
-IntroFrame.Parent = IntroGui
-IntroFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-IntroFrame.Size = UDim2.new(0, 320, 0, 140)
-IntroFrame.Position = UDim2.new(0.5, -160, 0.5, -70)
-IntroFrame.BackgroundTransparency = 1
-AddCorner(IntroFrame, 14)
-AddGradient(IntroFrame, Color3.fromRGB(35, 35, 45), Color3.fromRGB(15, 15, 20))
-
-local IntroStroke = Instance.new("UIStroke")
-IntroStroke.Thickness = 1.5
-IntroStroke.Color = Color3.fromRGB(255, 105, 180)
-IntroStroke.Transparency = 1
-IntroStroke.Parent = IntroFrame
-
-local IntroText = Instance.new("TextLabel")
-IntroText.Parent = IntroFrame
-IntroText.Size = UDim2.new(1, 0, 1, 0)
-IntroText.BackgroundTransparency = 1
-IntroText.Text = "Welcome to Bypassed.cc"
-IntroText.TextColor3 = Color3.fromRGB(255, 255, 255)
-IntroText.TextTransparency = 1
-IntroText.Font = Enum.Font.GothamBold
-IntroText.TextSize = 20
-
-TweenService:Create(IntroFrame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
-TweenService:Create(IntroStroke, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 0}):Play()
-TweenService:Create(IntroText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-
-task.wait(4)
-
-TweenService:Create(IntroFrame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
-TweenService:Create(IntroStroke, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Transparency = 1}):Play()
-local fadeOutTween = TweenService:Create(IntroText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextTransparency = 1})
-fadeOutTween:Play()
-
-fadeOutTween.Completed:Connect(function()
-    IntroGui:Destroy()
-end)
-
--- ==========================================
 -- СОЗДАНИЕ ОСНОВНОГО ИНТЕРФЕЙСА
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
@@ -158,7 +110,7 @@ MainFrame.Position = UDim2.new(0.35, 0, 0.25, 0)
 MainFrame.Size = UDim2.new(0, 500, 0, 520) 
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = false
+MainFrame.Visible = true -- Изменено на true для мгновенного появления
 AddCorner(MainFrame, 12)
 AddGradient(MainFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -202,7 +154,7 @@ local function CreatePage(name)
     Page.Size = UDim2.new(1, 0, 1, 0)
     Page.BackgroundTransparency = 1
     Page.ScrollBarThickness = 4
-    Page.CanvasSize = UDim2.new(0, 0, 2.2, 0) -- Запас под все настройки
+    Page.CanvasSize = UDim2.new(0, 0, 2.2, 0)
     Page.Visible = false
     Page.Parent = ContentFrame
     
@@ -220,6 +172,9 @@ local VisualPage = CreatePage("Visual")
 local MovementPage = CreatePage("Movement") 
 local VehiclePage = CreatePage("Vehicle")
 local SettingsPage = CreatePage("Settings")
+
+-- Первая страница открыта сразу по умолчанию
+CombatPage.Visible = true
 
 local function CreateTabButton(name, posIdx)
     local Btn = Instance.new("TextButton")
@@ -474,7 +429,7 @@ WidgetFrame.Position = UDim2.new(0.75, 0, 0.25, 0)
 WidgetFrame.Size = UDim2.new(0, 190, 0, 110)
 WidgetFrame.Active = true
 WidgetFrame.Draggable = true 
-WidgetFrame.Visible = false
+WidgetFrame.Visible = true -- Изменено на true для мгновенного появления
 AddCorner(WidgetFrame, 10)
 AddGradient(WidgetFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -515,14 +470,6 @@ WidgetFly.TextXAlignment = Enum.TextXAlignment.Left
 WidgetFly.Font = Enum.Font.Gotham
 WidgetFly.TextSize = 11
 WidgetFly.Parent = WidgetFrame
-
--- Активация главного меню после окончания интро
-task.spawn(function()
-    task.wait(5.1)
-    Pages["Комбат"].Visible = true
-    MainFrame.Visible = true
-    WidgetFrame.Visible = true
-end)
 
 -- ==========================================
 -- ЛОГИКА ПОИСКА ЦЕЛИ ДЛЯ RAGEBOT / SILENT
@@ -631,7 +578,7 @@ local function ApplyESP(player)
         table.insert(list, billboard)
         EspObjects[player.Name] = list
 
-        task.spawn(function()
+        幕.spawn(function()
             while char and char.Parent and EspObjects[player.Name] do
                 highlight.Enabled = ESP_Chams_Enabled and ESP_Enabled
                 highlight.FillColor = ESP_Color
@@ -827,13 +774,10 @@ RunService.RenderStepped:Connect(function()
     if StrafeMode ~= "None" and Humanoid.MoveDirection.Magnitude > 0 and Humanoid.FloorMaterial == Enum.Material.Air then
         local moveDir = Humanoid.MoveDirection
         if StrafeMode == "Default" then
-            -- Добавляет плавное ускорение в сторону стрейфа
             Root.AssemblyLinearVelocity = Vector3.new(moveDir.X * StrafeSpeed, Root.AssemblyLinearVelocity.Y, moveDir.Z * StrafeSpeed)
         elseif StrafeMode == "CounterMine" then
-            -- Перебивает задержку сервера импульсным стрейфом
             local currentVel = Root.AssemblyLinearVelocity
             Root.AssemblyLinearVelocity = Vector3.new(moveDir.X * (StrafeSpeed * 1.2), currentVel.Y, moveDir.Z * (StrafeSpeed * 1.2))
-            -- Микро-сдвиг для принудительной синхронизации физики античитом
             Root.CFrame = Root.CFrame + (moveDir * 0.05)
         end
     end
@@ -857,13 +801,11 @@ RunService.RenderStepped:Connect(function()
                 Root.AssemblyLinearVelocity = Vector3.new(0, 0.1, 0)
             end
         elseif FlyMode == "CounterMine" then
-            -- Обход детекта зависания: принудительно обнуляем гравитационное падение и создаем микро-вибрацию по оси Y
             local jitterY = math.sin(tick() * 60) * 0.08
             if flyVel.Magnitude > 0 then
                 local resVel = flyVel.Unit * FlySpeed
                 Root.AssemblyLinearVelocity = Vector3.new(resVel.X, resVel.Y + jitterY, resVel.Z)
             else
-                -- Имитация свободного падения с микроскопической скоростью, чтобы античит думал, что игрок падает
                 Root.AssemblyLinearVelocity = Vector3.new(0, -0.05 + jitterY, 0)
             end
         end
