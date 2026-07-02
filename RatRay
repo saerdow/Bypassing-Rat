@@ -21,12 +21,12 @@ local AimbotSpeed = 0.1
 -- Настройки Movement
 local InfJumpEnabled = false
 local FlyEnabled = false
-local FlyMode = "Default" -- "Default" или "CounterMine"
+local FlyMode = "Default"
 local FlySpeed = 50
 local FlyKey = Enum.KeyCode.F
 local IsBindingFlyKey = false
 
-local StrafeMode = "None" -- "None", "Default", "CounterMine"
+local StrafeMode = "None"
 local StrafeSpeed = 25
 
 local NoclipMode = "None" 
@@ -153,7 +153,8 @@ local function CreatePage(name)
     Page.Size = UDim2.new(1, 0, 1, 0)
     Page.BackgroundTransparency = 1
     Page.ScrollBarThickness = 4
-    Page.CanvasSize = UDim2.new(0, 0, 2.2, 0)
+    Page.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y -- Авто-размер холста, чтобы элементы не исчезали
+    Page.CanvasSize = UDim2.new(0, 0, 0, 0)
     Page.Visible = false
     Page.Parent = ContentFrame
     
@@ -172,7 +173,6 @@ local MovementPage = CreatePage("Movement")
 local VehiclePage = CreatePage("Vehicle")
 local SettingsPage = CreatePage("Settings")
 
--- Первая страница открыта сразу по умолчанию
 CombatPage.Visible = true
 
 local function CreateTabButton(name, posIdx)
@@ -419,7 +419,9 @@ local function AddColorPalette(parentPage, titleText, callback)
     end
 end
 
--- KEYBINDS WIDGET
+-- ==========================================
+-- КОРРЕКТНЫЙ KEYBINDS WIDGET (С ИСПРАВЛЕНИЕМ ЛЕЙБЛОВ)
+-- ==========================================
 local WidgetFrame = Instance.new("Frame")
 WidgetFrame.Name = "KeybindsWidget"
 WidgetFrame.Parent = ScreenGui
@@ -442,33 +444,40 @@ WidgetTitle.TextXAlignment = Enum.TextXAlignment.Left
 WidgetTitle.Font = Enum.Font.GothamBold
 WidgetTitle.TextSize = 13
 
+local WidgetListFrame = Instance.new("Frame")
+WidgetListFrame.Parent = WidgetFrame
+WidgetListFrame.Position = UDim2.new(0, 0, 0, 30)
+WidgetListFrame.Size = UDim2.new(1, 0, 1, -30)
+WidgetListFrame.BackgroundTransparency = 1
+
 local WidgetList = Instance.new("UIListLayout")
-WidgetList.Parent = WidgetFrame
-WidgetList.Padding = UDim.new(0, 2)
+WidgetList.Parent = WidgetListFrame
+WidgetList.Padding = UDim.new(0, 4)
+WidgetList.SortOrder = Enum.SortOrder.LayoutOrder
 
 local WidgetAim = Instance.new("TextLabel")
-WidgetAim.Size = UDim2.new(1, 0, 0, 18)
+WidgetAim.Size = UDim2.new(1, 0, 0, 20)
 WidgetAim.BackgroundTransparency = 1
 WidgetAim.TextXAlignment = Enum.TextXAlignment.Left
 WidgetAim.Font = Enum.Font.Gotham
-WidgetAim.TextSize = 11
-WidgetAim.Parent = WidgetFrame
+WidgetAim.TextSize = 12
+WidgetAim.Parent = WidgetListFrame
 
 local WidgetAutoShot = Instance.new("TextLabel")
-WidgetAutoShot.Size = UDim2.new(1, 0, 0, 18)
+WidgetAutoShot.Size = UDim2.new(1, 0, 0, 20)
 WidgetAutoShot.BackgroundTransparency = 1
 WidgetAutoShot.TextXAlignment = Enum.TextXAlignment.Left
 WidgetAutoShot.Font = Enum.Font.Gotham
-WidgetAutoShot.TextSize = 11
-WidgetAutoShot.Parent = WidgetFrame
+WidgetAutoShot.TextSize = 12
+WidgetAutoShot.Parent = WidgetListFrame
 
 local WidgetFly = Instance.new("TextLabel")
-WidgetFly.Size = UDim2.new(1, 0, 0, 18)
+WidgetFly.Size = UDim2.new(1, 0, 0, 20)
 WidgetFly.BackgroundTransparency = 1
 WidgetFly.TextXAlignment = Enum.TextXAlignment.Left
 WidgetFly.Font = Enum.Font.Gotham
-WidgetFly.TextSize = 11
-WidgetFly.Parent = WidgetFrame
+WidgetFly.TextSize = 12
+WidgetFly.Parent = WidgetListFrame
 
 -- ==========================================
 -- ЛОГИКА ПОИСКА ЦЕЛИ ДЛЯ RAGEBOT / SILENT
@@ -702,13 +711,13 @@ end)
 
 -- ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ REFRESH И ФУНКЦИЙ МУВМЕНТА
 RunService.RenderStepped:Connect(function()
-    WidgetAim.Text = "  [" .. SilentAimKey.Name .. "] Silent Aim: " .. (SilentAimEnabled and "ACTIVE" or "DISABLED")
+    WidgetAim.Text = "   [" .. SilentAimKey.Name .. "] Silent Aim: " .. (SilentAimEnabled and "ACTIVE" or "DISABLED")
     WidgetAim.TextColor3 = SilentAimEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
     
-    WidgetAutoShot.Text = "  [" .. AutoShotKey.Name .. "] AutoShot: " .. (AutoShotEnabled and "ACTIVE" or "DISABLED")
+    WidgetAutoShot.Text = "   [" .. AutoShotKey.Name .. "] AutoShot: " .. (AutoShotEnabled and "ACTIVE" or "DISABLED")
     WidgetAutoShot.TextColor3 = AutoShotEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
 
-    WidgetFly.Text = "  [" .. FlyKey.Name .. "] Fly Bypass: " .. (FlyEnabled and "ACTIVE" or "DISABLED")
+    WidgetFly.Text = "   [" .. FlyKey.Name .. "] Fly Bypass: " .. (FlyEnabled and "ACTIVE" or "DISABLED")
     WidgetFly.TextColor3 = FlyEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
 
     local Character = LocalPlayer.Character
@@ -781,7 +790,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- УЛУЧШЕННАЯ ЛОГИКА ПОЛЕТА С ОБХОДОМ COUNTERMINE
+    -- ПОЛЕТ
     if FlyEnabled then
         local flyVel = Vector3.new(0, 0, 0)
         if UIS:IsKeyDown(Enum.KeyCode.W) then flyVel = flyVel + Camera.CFrame.LookVector end
