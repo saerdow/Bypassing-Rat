@@ -1,4 +1,4 @@
--- Удаляем старое меню (поддерживает оба названия для плавного перехода)
+-- Удаляем старые меню для чистого перезапуска
 if game.CoreGui:FindFirstChild("ElenaDildoHub") then game.CoreGui.ElenaDildoHub:Destroy() end
 if game.CoreGui:FindFirstChild("BypassBitchHub") then game.CoreGui.BypassBitchHub:Destroy() end
 
@@ -9,6 +9,12 @@ local ESP_Enabled = false
 local ESP_Color = Color3.fromRGB(255, 0, 0)
 local ESP_TextSize = 14
 local ESP_Chams_Enabled = true
+
+-- Настройки Трейсеров
+local ESP_Tracers_Enabled = false
+local ESP_Tracers_Color = Color3.fromRGB(255, 255, 255)
+local ESP_Tracers_Thickness = 1
+local ESP_Tracers_Transparency = 1.0
 
 -- Настройки Аимбота и FOV
 local AimbotEnabled = false
@@ -32,6 +38,10 @@ local TeleportMode = "None"
 local TeleportKey = Enum.KeyCode.T 
 local IsBindingTPKey = false
 
+-- Настройки Прыжковых кругов
+local JumpCircles_Enabled = false
+local JumpCircles_Color = Color3.fromRGB(255, 105, 180)
+
 -- Переменные для транспорта
 local CarSpeedMultiplier = 1.0 
 local CarMaxSpeedLimit = 100
@@ -41,7 +51,7 @@ local FastStopEnabled = false
 local FastStopKey = Enum.KeyCode.X 
 local IsBindingStopKey = false
 
--- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ RAGEBOT И SETTINGS (В твоем стиле)
+-- Настройки RageBot
 local SilentAimEnabled = false
 local SilentAimKey = Enum.KeyCode.E
 local SilentVisibleCheck = true
@@ -52,22 +62,32 @@ local TriggerBotKey = Enum.KeyCode.X
 local TriggerVisibleCheck = true
 local IsBindingTriggerKey = false
 
+-- Настройки Anti-Aim (Новое)
+local AntiAim_Enabled = false
+local AntiAim_Mode = "Static"
+local AntiAim_Yaw = 180
+local AntiAim_Pitch = 0
+local AntiAim_JitterRange = 45
+
 local BunnyHopEnabled = false
 local TeamCheckEnabled = true 
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
 
 -- ==========================================
--- ИНИЦИАЛИЗАЦИЯ DRAWING FOV КРУГА
+-- ИНИЦИАЛИЗАЦИЯ DRAWING КОМПОНЕНТОВ
 -- ==========================================
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Filled = false
 FOVCircle.Sides = 64
+
+local TracerLines = {}
 
 -- ==========================================
 -- УТИЛИТЫ ДЛЯ СТИЛЯ
@@ -110,7 +130,7 @@ local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
-Title.Text = "  BYPASS BITCH .cc [K]"
+Title.Text = "  BYPASSED.cc [K]"
 Title.TextColor3 = Color3.fromRGB(255, 105, 180)
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Font = Enum.Font.GothamBold
@@ -157,9 +177,8 @@ local function CreatePage(name)
     return Page
 end
 
--- ТВОИ СТРАНИЦЫ + НОВЫЙ RAGEBOT
 local CombatPage = CreatePage("Комбат")
-local RagePage = CreatePage("RageBot") -- Создаем страницу Рейджбота
+local RagePage = CreatePage("RageBot")
 local ESPPage = CreatePage("ЕСП")
 local UniversalPage = CreatePage("Universal")
 local VehiclePage = CreatePage("Vehicle")
@@ -168,8 +187,8 @@ Pages["Комбат"].Visible = true
 
 local function CreateTabButton(name, posIdx)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -10, 0, 30) -- Чуть уменьшил высоту (с 35 до 30), чтобы 6 кнопок идеально влезли в сайдбар
-    Btn.Position = UDim2.new(0, 5, 0, (posIdx * 38) + 5) -- Изменил шаг, чтобы кнопки не слипались
+    Btn.Size = UDim2.new(1, -10, 0, 30) 
+    Btn.Position = UDim2.new(0, 5, 0, (posIdx * 38) + 5) 
     Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     Btn.Text = name
     Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -184,9 +203,8 @@ local function CreateTabButton(name, posIdx)
     end)
 end
 
--- КНОПКИ САЙДБАРА С НОВЫМ ПОРЯДКОМ
 CreateTabButton("Комбат", 0)
-CreateTabButton("RageBot", 1) -- Добавили Рейджбот в меню
+CreateTabButton("RageBot", 1) 
 CreateTabButton("ЕСП", 2)
 CreateTabButton("Universal", 3)
 CreateTabButton("Vehicle", 4)
@@ -407,7 +425,7 @@ local function AddColorPalette(parentPage, titleText, callback)
     end
 end
 
--- ТВОЙ НОВЫЙ KEYBINDS WIDGET (В оригинальном стиле твоего GUI)
+-- KEYBINDS WIDGET
 local WidgetFrame = Instance.new("Frame")
 WidgetFrame.Name = "KeybindsWidget"
 WidgetFrame.Parent = ScreenGui
@@ -415,7 +433,7 @@ WidgetFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 WidgetFrame.Position = UDim2.new(0.75, 0, 0.25, 0)
 WidgetFrame.Size = UDim2.new(0, 190, 0, 100)
 WidgetFrame.Active = true
-WidgetFrame.Draggable = true -- Используем твой стандартный метод перемещения окна
+WidgetFrame.Draggable = true 
 AddCorner(WidgetFrame, 10)
 AddGradient(WidgetFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -450,9 +468,8 @@ WidgetTrigger.Font = Enum.Font.Gotham
 WidgetTrigger.TextSize = 12
 WidgetTrigger.Parent = WidgetFrame
 
-
 -- ==========================================
--- ЛОГИКА СИСТЕМ
+-- ЛОГИКА СИСТЕМ (ESP & ТРЕЙСЕРЫ)
 -- ==========================================
 local EspObjects = {}
 
@@ -460,6 +477,11 @@ local function ClearESP(playerName)
     if EspObjects[playerName] then
         for _, obj in pairs(EspObjects[playerName]) do if obj then obj:Destroy() end end
         EspObjects[playerName] = nil
+    end
+    if TracerLines[playerName] then
+        TracerLines[playerName].Visible = false
+        TracerLines[playerName]:Destroy()
+        TracerLines[playerName] = nil
     end
 end
 
@@ -535,8 +557,7 @@ local function GetClosestPlayer()
     local Closest, MaxDist = nil, AimbotFOV
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("HumanoidRootPart") then
-            -- МЕСТО ДЛЯ ТВОЕЙ ПРОВЕРКИ ТИМЧЕКА В БУДУЩЕМ СКРИПТЕ:
-            -- if TeamCheckEnabled and v.Team == LocalPlayer.Team then continue end
+            if TeamCheckEnabled and v.Team == LocalPlayer.Team then continue end
             
             local Pos, OnScreen = Camera:WorldToScreenPoint(v.Character.Head.Position)
             if OnScreen then
@@ -548,9 +569,44 @@ local function GetClosestPlayer()
     return Closest
 end
 
+local function CreateJumpCircle(position)
+    if not JumpCircles_Enabled then return end
+    
+    local CirclePart = Instance.new("Part")
+    CirclePart.Shape = Enum.PartType.Cylinder
+    CirclePart.Material = Enum.Material.Neon
+    CirclePart.Color = JumpCircles_Color
+    CirclePart.Size = Vector3.new(0.2, 2, 2)
+    CirclePart.CFrame = CFrame.new(position - Vector3.new(0, 2.8, 0)) * CFrame.Angles(0, 0, math.rad(90))
+    CirclePart.Anchored = true
+    CirclePart.CanCollide = false
+    CirclePart.Transparency = 0.2
+    CirclePart.Parent = workspace
+    
+    local TweenInf = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local Goal = {
+        Size = Vector3.new(0.2, 14, 14),
+        Transparency = 1
+    }
+    
+    local Tween = TweenService:Create(CirclePart, TweenInf, Goal)
+    Tween:Play()
+    Tween.Completed:Connect(function()
+        CirclePart:Destroy()
+    end)
+end
+
+-- ОБРАБОТКА ВВОДА И БИНДОВ РЕЙДЖБОТА
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     
+    if input.KeyCode == SilentAimKey and not IsBindingSilentKey then
+        SilentAimEnabled = not SilentAimEnabled
+    end
+    if input.KeyCode == TriggerBotKey and not IsBindingTriggerKey then
+        TriggerBotEnabled = not TriggerBotEnabled
+    end
+
     if input.KeyCode == TeleportKey and TeleportMode ~= "None" and not IsBindingTPKey then
         local Character = LocalPlayer.Character
         if not Character then return end
@@ -585,26 +641,42 @@ UIS.InputBegan:Connect(function(input, gpe)
     
     if input.KeyCode == Enum.KeyCode.K then
         MainFrame.Visible = not MainFrame.Visible
+        WidgetFrame.Visible = MainFrame.Visible
     end
 end)
 
 -- ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ
 RunService.RenderStepped:Connect(function()
-    -- ОБНОВЛЕНИЕ ТЕКСТА КЕЙБИНД КРУГА (Прямо в главном цикле, как и все твои фичи)
-    if SilentAimEnabled then
-        WidgetAim.Text = "  [" .. SilentAimKey.Name .. "] Silent Aim: ACTIVE"
-        WidgetAim.TextColor3 = Color3.fromRGB(80, 150, 80)
-    else
-        WidgetAim.Text = "  [" .. SilentAimKey.Name .. "] Silent Aim: DISABLED"
-        WidgetAim.TextColor3 = Color3.fromRGB(120, 120, 140)
-    end
+    WidgetAim.Text = "  [" .. SilentAimKey.Name .. "] Silent Aim: " .. (SilentAimEnabled and "ACTIVE" or "DISABLED")
+    WidgetAim.TextColor3 = SilentAimEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
     
-    if TriggerBotEnabled then
-        WidgetTrigger.Text = "  [" .. TriggerBotKey.Name .. "] TriggerBot: ACTIVE"
-        WidgetTrigger.TextColor3 = Color3.fromRGB(80, 150, 80)
-    else
-        WidgetTrigger.Text = "  [" .. TriggerBotKey.Name .. "] TriggerBot: DISABLED"
-        WidgetTrigger.TextColor3 = Color3.fromRGB(120, 120, 140)
+    WidgetTrigger.Text = "  [" .. TriggerBotKey.Name .. "] TriggerBot: " .. (TriggerBotEnabled and "ACTIVE" or "DISABLED")
+    WidgetTrigger.TextColor3 = TriggerBotEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
+
+    -- Рендеринг Трейсеров
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local root = p.Character.HumanoidRootPart
+            local Pos, OnScreen = Camera:WorldToScreenPoint(root.Position)
+            local passesTeamCheck = not TeamCheckEnabled or (p.Team ~= LocalPlayer.Team)
+            
+            if OnScreen and ESP_Tracers_Enabled and passesTeamCheck and ESP_Enabled then
+                if not TracerLines[p.Name] then
+                    TracerLines[p.Name] = Drawing.new("Line")
+                end
+                local line = TracerLines[p.Name]
+                line.Visible = true
+                line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                line.To = Vector2.new(Pos.X, Pos.Y)
+                line.Color = ESP_Tracers_Color
+                line.Thickness = ESP_Tracers_Thickness
+                line.Transparency = ESP_Tracers_Transparency
+            else
+                if TracerLines[p.Name] then TracerLines[p.Name].Visible = false end
+            end
+        else
+            if TracerLines[p.Name] then TracerLines[p.Name].Visible = false end
+        end
     end
 
     if FOV_Visible then
@@ -623,8 +695,28 @@ RunService.RenderStepped:Connect(function()
     local Root = Character:FindFirstChild("HumanoidRootPart")
     local Humanoid = Character:FindFirstChild("Humanoid")
     
-    -- МЕСТО ДЛЯ БУДУЩЕГО СУПЕР-БХОПА
-    -- if BunnyHopEnabled and Humanoid and Humanoid.FloorMaterial ~= Enum.Material.Air then Humanoid.Jump = true end
+    if BunnyHopEnabled and Humanoid and Humanoid.FloorMaterial ~= Enum.Material.Air then 
+        Humanoid.Jump = true 
+    end
+
+    -- ЛОГИКА ANTI-AIM
+    if AntiAim_Enabled and Root and Humanoid and Humanoid.Health > 0 then
+        if not (Humanoid.SeatPart and Humanoid.SeatPart:IsA("VehicleSeat")) then
+            local currentYaw = math.rad(AntiAim_Yaw)
+            local currentPitch = math.rad(AntiAim_Pitch)
+            
+            if AntiAim_Mode == "Jitter" then
+                local modifier = math.sin(tick() * 45) * math.rad(AntiAim_JitterRange)
+                currentYaw = currentYaw + modifier
+            elseif AntiAim_Mode == "Randomize" then
+                currentYaw = math.rad(math.random(-180, 180))
+                currentPitch = math.rad(math.random(-45, 45))
+            end
+            
+            local currentPos = Root.Position
+            Root.CFrame = CFrame.new(currentPos) * CFrame.Angles(currentPitch, currentYaw, 0)
+        end
+    end
 
     if AimbotEnabled then
         local isPressed = IsMouseBind and UIS:IsMouseButtonPressed(AimbotKey) or UIS:IsKeyDown(AimbotKey)
@@ -659,7 +751,6 @@ RunService.RenderStepped:Connect(function()
     
     if FlyEnabled and Root and Humanoid then
         local flyVel = Vector3.new(0, 0, 0)
-        
         if UIS:IsKeyDown(Enum.KeyCode.W) then flyVel = flyVel + Camera.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.S) then flyVel = flyVel - Camera.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.A) then flyVel = flyVel - Camera.CFrame.RightVector end
@@ -668,7 +759,6 @@ RunService.RenderStepped:Connect(function()
         if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then flyVel = flyVel - Vector3.new(0, 1, 0) end
         
         Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
-        
         if flyVel.Magnitude > 0 then
             Root.AssemblyLinearVelocity = flyVel.Unit * FlySpeed
         else
@@ -705,9 +795,18 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- ОТСЛЕЖИВАНИЕ ПРЫЖКА ДЛЯ КРУГОВ
 UIS.JumpRequest:Connect(function()
-    if InfJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid:ChangeState("Jumping")
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local Hum = LocalPlayer.Character.Humanoid
+        local Root = LocalPlayer.Character.HumanoidRootPart
+        
+        if InfJumpEnabled then
+            Hum:ChangeState("Jumping")
+            if JumpCircles_Enabled then CreateJumpCircle(Root.Position) end
+        elseif Hum.FloorMaterial ~= Enum.Material.Air then
+            if JumpCircles_Enabled then CreateJumpCircle(Root.Position) end
+        end
     end
 end)
 
@@ -733,21 +832,32 @@ AddSlider(CombatPage, "Толщина линий FOV", 1, 5, 1, false, function(
 AddSlider(CombatPage, "Прозрачность FOV", 1, 10, 10, true, function(val) FOV_Transparency = val end)
 AddColorPalette(CombatPage, "Цвет круга FOV:", function(color) FOV_Color = color end)
 
--- Вкладка RageBot (ПОЛНОСТЬЮ В ТВОЕМ СТИЛЕ)
+-- Вкладка RageBot
 AddToggle(RagePage, "Включить Silent Aim", false, function(state) SilentAimEnabled = state end)
 AddToggle(RagePage, "Проверка стен (Visible Check)", true, function(state) SilentVisibleCheck = state end)
-AddKeybindButton(RagePage, "Бинд для Silent Aim:", Enum.KeyCode.E, "Silent", function(key) SilentAimKey = key end)
+AddKeybindButton(RagePage, "Переключатель Silent Aim:", Enum.KeyCode.E, "Silent", function(key) SilentAimKey = key end)
 
 AddToggle(RagePage, "Включить TriggerBot", false, function(state) TriggerBotEnabled = state end)
 AddToggle(RagePage, "Проверка видимости для Триггера", true, function(state) TriggerVisibleCheck = state end)
-AddKeybindButton(RagePage, "Бинд для TriggerBot:", Enum.KeyCode.X, "Trigger", function(key) TriggerBotKey = key end)
+AddKeybindButton(RagePage, "Переключатель TriggerBot:", Enum.KeyCode.X, "Trigger", function(key) TriggerBotKey = key end)
 
 AddToggle(RagePage, "Включить BunnyHop", false, function(state) BunnyHopEnabled = state end)
+
+-- НАСТРОЙКИ ANTI-AIM В RAGEBOT
+AddToggle(RagePage, "Включить Anti-Aim", false, function(state) AntiAim_Enabled = state end)
+AddDropdown(RagePage, "Режим Anti-Aim:", {"Static", "Jitter", "Randomize"}, function(mode) AntiAim_Mode = mode end)
+AddSlider(RagePage, "Базовый угол Yaw", 0, 360, 180, false, function(val) AntiAim_Yaw = val end)
+AddSlider(RagePage, "Наклон Pitch (-45 до 45)", 0, 90, 45, false, function(val) AntiAim_Pitch = val - 45 end)
+AddSlider(RagePage, "Амплитуда Jitter", 5, 180, 45, false, function(val) AntiAim_JitterRange = val end)
 
 -- Вкладка ЕСП
 AddToggle(ESPPage, "Включить ESP (Никнеймы)", false, function(state) ESP_Enabled = state RefreshESPState() end)
 AddToggle(ESPPage, "Включить Chams (Тело сквозь стены)", true, function(state) ESP_Chams_Enabled = state end)
 AddColorPalette(ESPPage, "Цвет ESP:", function(color) ESP_Color = color end)
+AddToggle(ESPPage, "Включить Tracers (Линии к телу)", false, function(state) ESP_Tracers_Enabled = state end)
+AddSlider(ESPPage, "Толщина Трейсеров", 1, 5, 1, false, function(val) ESP_Tracers_Thickness = val end)
+AddSlider(ESPPage, "Прозрачность Трейсеров", 1, 10, 10, true, function(val) ESP_Tracers_Transparency = val end)
+AddColorPalette(ESPPage, "Цвет Трейсеров:", function(color) ESP_Tracers_Color = color end)
 
 -- Вкладка Universal
 AddToggle(UniversalPage, "Infinite Jump", false, function(state) InfJumpEnabled = state end)
@@ -761,6 +871,8 @@ AddToggle(UniversalPage, "WalkSpeed Boost (100)", false, function(state)
         LocalPlayer.Character.Humanoid.WalkSpeed = state and 100 or 16
     end
 end)
+AddToggle(UniversalPage, "Включить Jump Circles", false, function(state) JumpCircles_Enabled = state end)
+AddColorPalette(UniversalPage, "Цвет Jump Circles:", function(color) JumpCircles_Color = color end)
 
 -- Вкладка Vehicle
 AddSlider(VehiclePage, "Набор скорости (Multiplier)", 10, 250, 10, true, function(val) CarSpeedMultiplier = val end)
@@ -772,5 +884,6 @@ AddKeybindButton(VehiclePage, "Бинд для FastStop:", Enum.KeyCode.X, "Vehi
 
 -- Вкладка Settings
 AddSlider(SettingsPage, "Размер текста ESP", 10, 30, 14, false, function(val) ESP_TextSize = val end)
-AddToggle(SettingsPage, "Проверка на команду (TeamCheck)", true, function(state) TeamCheckEnabled = state end) -- Наша новая кнопка ТимЧека
+AddToggle(SettingsPage, "Проверка на команду (TeamCheck)", true, function(state) TeamCheckEnabled = state end)
+
 
