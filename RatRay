@@ -1,7 +1,6 @@
 -- Удаляем старые меню для чистого перезапуска
 if game.CoreGui:FindFirstChild("ElenaDildoHub") then game.CoreGui.ElenaDildoHub:Destroy() end
 if game.CoreGui:FindFirstChild("BypassBitchHub") then game.CoreGui.BypassBitchHub:Destroy() end
-if game.CoreGui:FindFirstChild("BypassedIntroGui") then game.CoreGui.BypassedIntroGui:Destroy() end
 
 -- ==========================================
 -- НАСТРОЕЧНЫЕ ПЕРЕМЕННЫЕ
@@ -110,7 +109,7 @@ MainFrame.Position = UDim2.new(0.35, 0, 0.25, 0)
 MainFrame.Size = UDim2.new(0, 500, 0, 520) 
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true -- Изменено на true для мгновенного появления
+MainFrame.Visible = true
 AddCorner(MainFrame, 12)
 AddGradient(MainFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -429,7 +428,7 @@ WidgetFrame.Position = UDim2.new(0.75, 0, 0.25, 0)
 WidgetFrame.Size = UDim2.new(0, 190, 0, 110)
 WidgetFrame.Active = true
 WidgetFrame.Draggable = true 
-WidgetFrame.Visible = true -- Изменено на true для мгновенного появления
+WidgetFrame.Visible = true
 AddCorner(WidgetFrame, 10)
 AddGradient(WidgetFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -578,7 +577,7 @@ local function ApplyESP(player)
         table.insert(list, billboard)
         EspObjects[player.Name] = list
 
-        幕.spawn(function()
+        task.spawn(function()
             while char and char.Parent and EspObjects[player.Name] do
                 highlight.Enabled = ESP_Chams_Enabled and ESP_Enabled
                 highlight.FillColor = ESP_Color
