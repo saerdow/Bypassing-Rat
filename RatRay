@@ -43,7 +43,6 @@ local NoclipMode = "None"
 local TeleportMode = "None" 
 local TeleportKey = Enum.KeyCode.T 
 local IsBindingTPKey = false
-local WalkSpeedEnabled = false
 
 -- Настройки Прыжковых кругов
 local JumpCircles_Enabled = false
@@ -61,13 +60,13 @@ local IsBindingStopKey = false
 -- Настройки RageBot
 local SilentAimEnabled = false
 local SilentAimKey = Enum.KeyCode.E
-local SilentVisibleCheck = false
+local SilentVisibleCheck = true
 local IsBindingSilentKey = false
 
-local AutoShotEnabled = false
-local AutoShotKey = Enum.KeyCode.X
-local AutoShotDelay = 0.05
-local IsBindingAutoShotKey = false
+local TriggerBotEnabled = false
+local TriggerBotKey = Enum.KeyCode.X
+local TriggerVisibleCheck = true
+local IsBindingTriggerKey = false
 
 -- Настройки Anti-Aim
 local AntiAim_Enabled = false
@@ -365,7 +364,7 @@ local function AddKeybindButton(parentPage, text, defaultKey, typeOfBind, callba
         if typeOfBind == "Vehicle" then IsBindingStopKey = true 
         elseif typeOfBind == "Teleport" then IsBindingTPKey = true 
         elseif typeOfBind == "Silent" then IsBindingSilentKey = true 
-        elseif typeOfBind == "AutoShot" then IsBindingAutoShotKey = true
+        elseif typeOfBind == "Trigger" then IsBindingTriggerKey = true
         elseif typeOfBind == "Fly" then IsBindingFlyKey = true end
         Btn.Text = "[Нажмите клавишу...]"
     end)
@@ -386,8 +385,8 @@ local function AddKeybindButton(parentPage, text, defaultKey, typeOfBind, callba
             Btn.Text = "[" .. input.KeyCode.Name .. "]"
             callback(input.KeyCode)
         end
-        if typeOfBind == "AutoShot" and IsBindingAutoShotKey and input.UserInputType == Enum.UserInputType.Keyboard then
-            IsBindingAutoShotKey = false
+        if typeOfBind == "Trigger" and IsBindingTriggerKey and input.UserInputType == Enum.UserInputType.Keyboard then
+            IsBindingTriggerKey = false
             Btn.Text = "[" .. input.KeyCode.Name .. "]"
             callback(input.KeyCode)
         end
@@ -473,13 +472,13 @@ WidgetAim.Font = Enum.Font.Gotham
 WidgetAim.TextSize = 12
 WidgetAim.Parent = WidgetFrame
 
-local WidgetAutoShot = Instance.new("TextLabel")
-WidgetAutoShot.Size = UDim2.new(1, 0, 0, 18)
-WidgetAutoShot.BackgroundTransparency = 1
-WidgetAutoShot.TextXAlignment = Enum.TextXAlignment.Left
-WidgetAutoShot.Font = Enum.Font.Gotham
-WidgetAutoShot.TextSize = 12
-WidgetAutoShot.Parent = WidgetFrame
+local WidgetTrigger = Instance.new("TextLabel")
+WidgetTrigger.Size = UDim2.new(1, 0, 0, 18)
+WidgetTrigger.BackgroundTransparency = 1
+WidgetTrigger.TextXAlignment = Enum.TextXAlignment.Left
+WidgetTrigger.Font = Enum.Font.Gotham
+WidgetTrigger.TextSize = 12
+WidgetTrigger.Parent = WidgetFrame
 
 -- ==========================================
 -- ЛОГИКА СИСТЕМ (ESP & ТРЕЙСЕРЫ)
@@ -570,14 +569,7 @@ local function GetClosestPlayer()
     local Closest, MaxDist = nil, AimbotFOV
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("HumanoidRootPart") then
-            local humanoid = v.Character:FindFirstChildOfClass("Humanoid")
-            if not humanoid or humanoid.Health <= 0 then continue end
             if TeamCheckEnabled and v.Team == LocalPlayer.Team then continue end
-            
-            if SilentVisibleCheck then
-                local parts = Camera:GetPartsObscuringTarget({v.Character.Head.Position}, {LocalPlayer.Character, v.Character})
-                if #parts > 0 then continue end
-            end
             
             local Pos, OnScreen = Camera:WorldToScreenPoint(v.Character.Head.Position)
             if OnScreen then
@@ -616,33 +608,6 @@ local function CreateJumpCircle(position)
     end)
 end
 
--- ==========================================
--- МЕТАМЕТОД ХУК ДЛЯ SILENT AIM
--- ==========================================
-local gmt = getrawmetatable(game)
-setreadonly(gmt, false)
-local oldIndex = gmt.__index
-
-gmt.__index = newcclosure(function(self, key)
-    if not checkcaller() and self == Mouse and (key == "Hit" or key == "Target") then
-        if SilentAimEnabled then
-            local targetPlayer = GetClosestPlayer()
-            if targetPlayer and targetPlayer.Character then
-                local targetPart = targetPlayer.Character:FindFirstChild("Head") or targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if targetPart then
-                    if key == "Hit" then
-                        return targetPart.CFrame
-                    elseif key == "Target" then
-                        return targetPart
-                    end
-                end
-            end
-        end
-    end
-    return oldIndex(self, key)
-end)
-setreadonly(gmt, true)
-
 -- ОБРАБОТКА ВВОДА И БИНДОВ РЕЙДЖБОТА
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
@@ -650,8 +615,8 @@ UIS.InputBegan:Connect(function(input, gpe)
     if input.KeyCode == SilentAimKey and not IsBindingSilentKey then
         SilentAimEnabled = not SilentAimEnabled
     end
-    if input.KeyCode == AutoShotKey and not IsBindingAutoShotKey then
-        AutoShotEnabled = not AutoShotEnabled
+    if input.KeyCode == TriggerBotKey and not IsBindingTriggerKey then
+        TriggerBotEnabled = not TriggerBotEnabled
     end
     if input.KeyCode == FlyKey and not IsBindingFlyKey then
         FlyEnabled = not FlyEnabled
@@ -695,32 +660,13 @@ UIS.InputBegan:Connect(function(input, gpe)
     end
 end)
 
--- АСИНХРОННЫЙ ПОТОК АВТОШОТА
-task.spawn(function()
-    while true do
-        if AutoShotEnabled then
-            local target = GetClosestPlayer()
-            if target and mouse1press and mouse1release then
-                mouse1press()
-                task.wait(0.01)
-                mouse1release()
-                task.wait(AutoShotDelay)
-            else
-                task.wait(0.05)
-            end
-        else
-            task.wait(0.1)
-        end
-    end
-end)
-
 -- ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ
 RunService.RenderStepped:Connect(function()
     WidgetAim.Text = "  [" .. SilentAimKey.Name .. "] Silent Aim: " .. (SilentAimEnabled and "ACTIVE" or "DISABLED")
     WidgetAim.TextColor3 = SilentAimEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
     
-    WidgetAutoShot.Text = "  [" .. AutoShotKey.Name .. "] AutoShot: " .. (AutoShotEnabled and "ACTIVE" or "DISABLED")
-    WidgetAutoShot.TextColor3 = AutoShotEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
+    WidgetTrigger.Text = "  [" .. TriggerBotKey.Name .. "] TriggerBot: " .. (TriggerBotEnabled and "ACTIVE" or "DISABLED")
+    WidgetTrigger.TextColor3 = TriggerBotEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
 
     -- Рендеринг Трейсеров
     for _, p in pairs(Players:GetPlayers()) do
@@ -924,12 +870,12 @@ AddColorPalette(CombatPage, "Цвет круга FOV:", function(color) FOV_Colo
 
 -- Вкладка RageBot
 AddToggle(RagePage, "Включить Silent Aim", false, function(state) SilentAimEnabled = state end)
-AddToggle(RagePage, "Проверка стен (Visible Check)", false, function(state) SilentVisibleCheck = state end)
+AddToggle(RagePage, "Проверка стен (Visible Check)", true, function(state) SilentVisibleCheck = state end)
 AddKeybindButton(RagePage, "Переключатель Silent Aim:", Enum.KeyCode.E, "Silent", function(key) SilentAimKey = key end)
 
-AddToggle(RagePage, "Включить AutoShot", false, function(state) AutoShotEnabled = state end)
-AddSlider(RagePage, "Задержка AutoShot (ms)", 1, 20, 5, true, function(val) AutoShotDelay = val / 100 end)
-AddKeybindButton(RagePage, "Переключатель AutoShot:", Enum.KeyCode.X, "AutoShot", function(key) AutoShotKey = key end)
+AddToggle(RagePage, "Включить TriggerBot", false, function(state) TriggerBotEnabled = state end)
+AddToggle(RagePage, "Проверка видимости для Триггера", true, function(state) TriggerVisibleCheck = state end)
+AddKeybindButton(RagePage, "Переключатель TriggerBot:", Enum.KeyCode.X, "Trigger", function(key) TriggerBotKey = key end)
 
 AddToggle(RagePage, "Включить BunnyHop", false, function(state) BunnyHopEnabled = state end)
 
@@ -964,8 +910,8 @@ AddDropdown(MovementPage, "Режим Noclip:", {"None", "Default", "CounterMine
 AddDropdown(MovementPage, "Click Teleport:", {"None", "Default", "CounterMine"}, function(mode) TeleportMode = mode end)
 AddKeybindButton(MovementPage, "Бинд для Teleport:", Enum.KeyCode.T, "Teleport", function(key) TeleportKey = key end)
 AddToggle(MovementPage, "WalkSpeed Boost (100)", false, function(state) 
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = state and 100 or 16
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = state and 100 or 16
     end
 end)
 AddToggle(MovementPage, "Включить Jump Circles", false, function(state) JumpCircles_Enabled = state end)
