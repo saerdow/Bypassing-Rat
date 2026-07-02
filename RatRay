@@ -1,6 +1,7 @@
 -- Удаляем старые меню для чистого перезапуска
 if game.CoreGui:FindFirstChild("ElenaDildoHub") then game.CoreGui.ElenaDildoHub:Destroy() end
 if game.CoreGui:FindFirstChild("BypassBitchHub") then game.CoreGui.BypassBitchHub:Destroy() end
+if game.CoreGui:FindFirstChild("BypassedIntroGui") then game.CoreGui.BypassedIntroGui:Destroy() end
 
 -- ==========================================
 -- НАСТРОЕЧНЫЕ ПЕРЕМЕННЫЕ
@@ -29,7 +30,7 @@ local FOV_Color = Color3.fromRGB(255, 105, 180)
 local FOV_Thickness = 1
 local FOV_Transparency = 1.0
 
--- Настройки Universal
+-- Настройки Movement (Бывший Universal)
 local InfJumpEnabled = false
 local FlyEnabled = false
 local FlySpeed = 50
@@ -57,12 +58,12 @@ local SilentAimKey = Enum.KeyCode.E
 local SilentVisibleCheck = true
 local IsBindingSilentKey = false
 
-local TriggerBotEnabled = false
-local TriggerBotKey = Enum.KeyCode.X
-local TriggerVisibleCheck = true
-local IsBindingTriggerKey = false
+local AutoShotEnabled = false
+local AutoShotKey = Enum.KeyCode.X
+local AutoShotDelay = 0.05
+local IsBindingAutoShotKey = false
 
--- Настройки Anti-Aim (Новое)
+-- Настройки Anti-Aim
 local AntiAim_Enabled = false
 local AntiAim_Mode = "Static"
 local AntiAim_Yaw = 180
@@ -108,7 +109,58 @@ local function AddGradient(obj, color1, color2)
 end
 
 -- ==========================================
--- СОЗДАНИЕ ИНТЕРФЕЙСА
+-- СОЗДАНИЕ СТИЛЬНОГО ВСТУПИТЕЛЬНОГО МЕНЮ (INTRO)
+-- ==========================================
+local IntroGui = Instance.new("ScreenGui")
+IntroGui.Name = "BypassedIntroGui"
+IntroGui.Parent = game.CoreGui
+
+local IntroFrame = Instance.new("Frame")
+IntroFrame.Name = "IntroFrame"
+IntroFrame.Parent = IntroGui
+IntroFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+IntroFrame.Size = UDim2.new(0, 320, 0, 140)
+IntroFrame.Position = UDim2.new(0.5, -160, 0.5, -70)
+IntroFrame.BackgroundTransparency = 1 -- Начинаем невидимым для плавного появления
+AddCorner(IntroFrame, 14)
+AddGradient(IntroFrame, Color3.fromRGB(35, 35, 45), Color3.fromRGB(15, 15, 20))
+
+-- Граница с неоновым свечением
+local IntroStroke = Instance.new("UIStroke")
+IntroStroke.Thickness = 1.5
+IntroStroke.Color = Color3.fromRGB(255, 105, 180)
+IntroStroke.Transparency = 1
+IntroStroke.Parent = IntroFrame
+
+local IntroText = Instance.new("TextLabel")
+IntroText.Parent = IntroFrame
+IntroText.Size = UDim2.new(1, 0, 1, 0)
+IntroText.BackgroundTransparency = 1
+IntroText.Text = "Welcome to Bypassed.cc"
+IntroText.TextColor3 = Color3.fromRGB(255, 255, 255)
+IntroText.TextTransparency = 1
+IntroText.Font = Enum.Font.GothamBold
+IntroText.TextSize = 20
+
+-- Анимация плавного появления интро (1 секунда)
+TweenService:Create(IntroFrame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+TweenService:Create(IntroStroke, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 0}):Play()
+TweenService:Create(IntroText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+
+task.wait(5) -- Держим окно (общее время с анимацией выхода составит 6 секунд)
+
+-- Анимация плавного исчезновения интро (1 секунда)
+TweenService:Create(IntroFrame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
+TweenService:Create(IntroStroke, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Transparency = 1}):Play()
+local fadeOutTween = TweenService:Create(IntroText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextTransparency = 1})
+fadeOutTween:Play()
+
+fadeOutTween.Completed:Connect(function()
+    IntroGui:Destroy() -- Полностью удаляем интро из памяти
+end)
+
+-- ==========================================
+-- СОЗДАНИЕ ОСНОВНОГО ИНТЕРФЕЙСА
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BypassBitchHub"
@@ -123,6 +175,7 @@ MainFrame.Position = UDim2.new(0.35, 0, 0.25, 0)
 MainFrame.Size = UDim2.new(0, 500, 0, 520) 
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = false -- Скрываем до окончания интро
 AddCorner(MainFrame, 12)
 AddGradient(MainFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -179,8 +232,8 @@ end
 
 local CombatPage = CreatePage("Комбат")
 local RagePage = CreatePage("RageBot")
-local ESPPage = CreatePage("ЕСП")
-local UniversalPage = CreatePage("Universal")
+local VisualPage = CreatePage("Visual") 
+local MovementPage = CreatePage("Movement") -- Изменено с Universal на Movement
 local VehiclePage = CreatePage("Vehicle")
 local SettingsPage = CreatePage("Settings")
 Pages["Комбат"].Visible = true 
@@ -205,8 +258,8 @@ end
 
 CreateTabButton("Комбат", 0)
 CreateTabButton("RageBot", 1) 
-CreateTabButton("ЕСП", 2)
-CreateTabButton("Universal", 3)
+CreateTabButton("Visual", 2) 
+CreateTabButton("Movement", 3) -- Переименовано на кнопке меню
 CreateTabButton("Vehicle", 4)
 CreateTabButton("Settings", 5)
 
@@ -358,7 +411,7 @@ local function AddKeybindButton(parentPage, text, defaultKey, typeOfBind, callba
         if typeOfBind == "Vehicle" then IsBindingStopKey = true 
         elseif typeOfBind == "Teleport" then IsBindingTPKey = true 
         elseif typeOfBind == "Silent" then IsBindingSilentKey = true 
-        elseif typeOfBind == "Trigger" then IsBindingTriggerKey = true end
+        elseif typeOfBind == "AutoShot" then IsBindingAutoShotKey = true end
         Btn.Text = "[Нажмите клавишу...]"
     end)
 
@@ -378,8 +431,8 @@ local function AddKeybindButton(parentPage, text, defaultKey, typeOfBind, callba
             Btn.Text = "[" .. input.KeyCode.Name .. "]"
             callback(input.KeyCode)
         end
-        if typeOfBind == "Trigger" and IsBindingTriggerKey and input.UserInputType == Enum.UserInputType.Keyboard then
-            IsBindingTriggerKey = false
+        if typeOfBind == "AutoShot" and IsBindingAutoShotKey and input.UserInputType == Enum.UserInputType.Keyboard then
+            IsBindingAutoShotKey = false
             Btn.Text = "[" .. input.KeyCode.Name .. "]"
             callback(input.KeyCode)
         end
@@ -434,6 +487,7 @@ WidgetFrame.Position = UDim2.new(0.75, 0, 0.25, 0)
 WidgetFrame.Size = UDim2.new(0, 190, 0, 100)
 WidgetFrame.Active = true
 WidgetFrame.Draggable = true 
+WidgetFrame.Visible = false -- Скрываем до окончания интро
 AddCorner(WidgetFrame, 10)
 AddGradient(WidgetFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -460,13 +514,72 @@ WidgetAim.Font = Enum.Font.Gotham
 WidgetAim.TextSize = 12
 WidgetAim.Parent = WidgetFrame
 
-local WidgetTrigger = Instance.new("TextLabel")
-WidgetTrigger.Size = UDim2.new(1, 0, 0, 18)
-WidgetTrigger.BackgroundTransparency = 1
-WidgetTrigger.TextXAlignment = Enum.TextXAlignment.Left
-WidgetTrigger.Font = Enum.Font.Gotham
-WidgetTrigger.TextSize = 12
-WidgetTrigger.Parent = WidgetFrame
+local WidgetAutoShot = Instance.new("TextLabel")
+WidgetAutoShot.Size = UDim2.new(1, 0, 0, 18)
+WidgetAutoShot.BackgroundTransparency = 1
+WidgetAutoShot.TextXAlignment = Enum.TextXAlignment.Left
+WidgetAutoShot.Font = Enum.Font.Gotham
+WidgetAutoShot.TextSize = 12
+WidgetAutoShot.Parent = WidgetFrame
+
+-- Активация главного меню после интро
+task.spawn(function()
+    task.wait(1) -- Ждем пока интро полностью растворится
+    MainFrame.Visible = true
+    WidgetFrame.Visible = true
+end)
+
+-- ==========================================
+-- ЛОГИКА ПОИСКА ЦЕЛИ ДЛЯ RAGEBOT / SILENT
+-- ==========================================
+local function GetClosestPlayerToMuzzle()
+    local Closest, MaxDist = nil, AimbotFOV
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("HumanoidRootPart") then
+            if TeamCheckEnabled and v.Team == LocalPlayer.Team then continue end
+            if v.Character.Humanoid.Health <= 0 then continue end
+            
+            if SilentVisibleCheck then
+                local parts = Camera:GetPartsObscuringTarget({v.Character.Head.Position}, {LocalPlayer.Character, v.Character})
+                if #parts > 0 then continue end
+            end
+
+            local Pos, OnScreen = Camera:WorldToScreenPoint(v.Character.Head.Position)
+            if OnScreen then
+                local Dist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(Pos.X, Pos.Y)).Magnitude
+                if Dist < MaxDist then 
+                    Closest = v
+                    MaxDist = Dist 
+                end
+            end
+        end
+    end
+    return Closest
+end
+
+-- ==========================================
+-- МЕТАМЕТОД ХУК ДЛЯ SILENT AIM
+-- ==========================================
+local gmt = getrawmetatable(game)
+setreadonly(gmt, false)
+local oldIndex = gmt.__index
+
+gmt.__index = newcclosure(function(self, key)
+    if self == Mouse and (key == "Hit" or key == "Target") then
+        if SilentAimEnabled then
+            local targetPlayer = GetClosestPlayerToMuzzle()
+            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+                if key == "Hit" then
+                    return targetPlayer.Character.Head.CFrame
+                elseif key == "Target" then
+                    return targetPlayer.Character.Head
+                end
+            end
+        end
+    end
+    return oldIndex(self, key)
+end)
+setreadonly(gmt, true)
 
 -- ==========================================
 -- ЛОГИКА СИСТЕМ (ESP & ТРЕЙСЕРЫ)
@@ -553,22 +666,6 @@ local function RefreshESPState()
     end
 end
 
-local function GetClosestPlayer()
-    local Closest, MaxDist = nil, AimbotFOV
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("HumanoidRootPart") then
-            if TeamCheckEnabled and v.Team == LocalPlayer.Team then continue end
-            
-            local Pos, OnScreen = Camera:WorldToScreenPoint(v.Character.Head.Position)
-            if OnScreen then
-                local Dist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(Pos.X, Pos.Y)).Magnitude
-                if Dist < MaxDist then Closest = v; MaxDist = Dist end
-            end
-        end
-    end
-    return Closest
-end
-
 local function CreateJumpCircle(position)
     if not JumpCircles_Enabled then return end
     
@@ -596,17 +693,18 @@ local function CreateJumpCircle(position)
     end)
 end
 
--- ОБРАБОТКА ВВОДА И БИНДОВ РЕЙДЖБОТА
+-- ОБРАБОТКА ВВОДА
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     
     if input.KeyCode == SilentAimKey and not IsBindingSilentKey then
         SilentAimEnabled = not SilentAimEnabled
     end
-    if input.KeyCode == TriggerBotKey and not IsBindingTriggerKey then
-        TriggerBotEnabled = not TriggerBotEnabled
+    if input.KeyCode == AutoShotKey and not IsBindingAutoShotKey then
+        AutoShotEnabled = not AutoShotEnabled
     end
 
+    -- ТЕЛЕПОРТ
     if input.KeyCode == TeleportKey and TeleportMode ~= "None" and not IsBindingTPKey then
         local Character = LocalPlayer.Character
         if not Character then return end
@@ -623,18 +721,20 @@ UIS.InputBegan:Connect(function(input, gpe)
                 local startPos = Root.Position
                 local direction = (targetPos - startPos).Unit
                 local distance = (targetPos - startPos).Magnitude
-                local stepSize = 12 
+                local stepSize = 35 
                 local currentDist = 0
                 
                 while currentDist < distance do
-                    if not Root or not Character.Parent then break end
+                    if TeleportMode == "None" or not Root or not Character.Parent then break end
                     currentDist = math.clamp(currentDist + stepSize, 0, distance)
                     Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
                     Root.CFrame = CFrame.new(startPos + (direction * currentDist))
                     Root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    task.wait(0.02)
+                    task.wait() 
                 end
-                Root.CFrame = CFrame.new(targetPos)
+                if TeleportMode ~= "None" and Root then
+                    Root.CFrame = CFrame.new(targetPos)
+                end
             end)
         end
     end
@@ -645,13 +745,29 @@ UIS.InputBegan:Connect(function(input, gpe)
     end
 end)
 
+-- ПОТОК АВТОШОТА
+task.spawn(function()
+    while true do
+        if AutoShotEnabled then
+            local target = GetClosestPlayerToMuzzle()
+            if target then
+                mouse1press()
+                task.wait(0.01)
+                mouse1release()
+                task.wait(AutoShotDelay)
+            end
+        end
+        task.wait(0.01)
+    end
+end)
+
 -- ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ
 RunService.RenderStepped:Connect(function()
     WidgetAim.Text = "  [" .. SilentAimKey.Name .. "] Silent Aim: " .. (SilentAimEnabled and "ACTIVE" or "DISABLED")
     WidgetAim.TextColor3 = SilentAimEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
     
-    WidgetTrigger.Text = "  [" .. TriggerBotKey.Name .. "] TriggerBot: " .. (TriggerBotEnabled and "ACTIVE" or "DISABLED")
-    WidgetTrigger.TextColor3 = TriggerBotEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
+    WidgetAutoShot.Text = "  [" .. AutoShotKey.Name .. "] AutoShot: " .. (AutoShotEnabled and "ACTIVE" or "DISABLED")
+    WidgetAutoShot.TextColor3 = AutoShotEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
 
     -- Рендеринг Трейсеров
     for _, p in pairs(Players:GetPlayers()) do
@@ -721,7 +837,7 @@ RunService.RenderStepped:Connect(function()
     if AimbotEnabled then
         local isPressed = IsMouseBind and UIS:IsMouseButtonPressed(AimbotKey) or UIS:IsKeyDown(AimbotKey)
         if isPressed then
-            local Target = GetClosestPlayer()
+            local Target = GetClosestPlayerToMuzzle()
             if Target and Target.Character and Target.Character:FindFirstChild("Head") then
                 local Prediction = Target.Character.Head.Position + (Target.Character.HumanoidRootPart.Velocity * AimbotPredict)
                 Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, Prediction), AimbotSpeed)
@@ -837,42 +953,42 @@ AddToggle(RagePage, "Включить Silent Aim", false, function(state) Silent
 AddToggle(RagePage, "Проверка стен (Visible Check)", true, function(state) SilentVisibleCheck = state end)
 AddKeybindButton(RagePage, "Переключатель Silent Aim:", Enum.KeyCode.E, "Silent", function(key) SilentAimKey = key end)
 
-AddToggle(RagePage, "Включить TriggerBot", false, function(state) TriggerBotEnabled = state end)
-AddToggle(RagePage, "Проверка видимости для Триггера", true, function(state) TriggerVisibleCheck = state end)
-AddKeybindButton(RagePage, "Переключатель TriggerBot:", Enum.KeyCode.X, "Trigger", function(key) TriggerBotKey = key end)
+AddToggle(RagePage, "Включить AutoShot", false, function(state) AutoShotEnabled = state end)
+AddSlider(RagePage, "Скорость выстрелов AutoShot", 1, 20, 5, true, function(val) AutoShotDelay = val / 100 end)
+AddKeybindButton(RagePage, "Переключатель AutoShot:", Enum.KeyCode.X, "AutoShot", function(key) AutoShotKey = key end)
 
 AddToggle(RagePage, "Включить BunnyHop", false, function(state) BunnyHopEnabled = state end)
 
--- НАСТРОЙКИ ANTI-AIM В RAGEBOT
+-- Настройки Anti-Aim
 AddToggle(RagePage, "Включить Anti-Aim", false, function(state) AntiAim_Enabled = state end)
 AddDropdown(RagePage, "Режим Anti-Aim:", {"Static", "Jitter", "Randomize"}, function(mode) AntiAim_Mode = mode end)
 AddSlider(RagePage, "Базовый угол Yaw", 0, 360, 180, false, function(val) AntiAim_Yaw = val end)
 AddSlider(RagePage, "Наклон Pitch (-45 до 45)", 0, 90, 45, false, function(val) AntiAim_Pitch = val - 45 end)
 AddSlider(RagePage, "Амплитуда Jitter", 5, 180, 45, false, function(val) AntiAim_JitterRange = val end)
 
--- Вкладка ЕСП
-AddToggle(ESPPage, "Включить ESP (Никнеймы)", false, function(state) ESP_Enabled = state RefreshESPState() end)
-AddToggle(ESPPage, "Включить Chams (Тело сквозь стены)", true, function(state) ESP_Chams_Enabled = state end)
-AddColorPalette(ESPPage, "Цвет ESP:", function(color) ESP_Color = color end)
-AddToggle(ESPPage, "Включить Tracers (Линии к телу)", false, function(state) ESP_Tracers_Enabled = state end)
-AddSlider(ESPPage, "Толщина Трейсеров", 1, 5, 1, false, function(val) ESP_Tracers_Thickness = val end)
-AddSlider(ESPPage, "Прозрачность Трейсеров", 1, 10, 10, true, function(val) ESP_Tracers_Transparency = val end)
-AddColorPalette(ESPPage, "Цвет Трейсеров:", function(color) ESP_Tracers_Color = color end)
+-- Вкладка Visual
+AddToggle(VisualPage, "Включить ESP (Никнеймы)", false, function(state) ESP_Enabled = state RefreshESPState() end)
+AddToggle(VisualPage, "Включить Chams (Тело сквозь стены)", true, function(state) ESP_Chams_Enabled = state end)
+AddColorPalette(VisualPage, "Цвет ESP:", function(color) ESP_Color = color end)
+AddToggle(VisualPage, "Включить Tracers (Линии к телу)", false, function(state) ESP_Tracers_Enabled = state end)
+AddSlider(VisualPage, "Толщина Трейсеров", 1, 5, 1, false, function(val) ESP_Tracers_Thickness = val end)
+AddSlider(VisualPage, "Прозрачность Трейсеров", 1, 10, 10, true, function(val) ESP_Tracers_Transparency = val end)
+AddColorPalette(VisualPage, "Цвет Трейсеров:", function(color) ESP_Tracers_Color = color end)
+AddToggle(VisualPage, "Включить Jump Circles", false, function(state) JumpCircles_Enabled = state end)
+AddColorPalette(VisualPage, "Цвет Jump Circles:", function(color) JumpCircles_Color = color end)
 
--- Вкладка Universal
-AddToggle(UniversalPage, "Infinite Jump", false, function(state) InfJumpEnabled = state end)
-AddToggle(UniversalPage, "Включить Полет (Fly Bypass)", false, function(state) FlyEnabled = state end)
-AddSlider(UniversalPage, "Скорость полета", 10, 200, 50, false, function(val) FlySpeed = val end)
-AddDropdown(UniversalPage, "Режим Noclip:", {"None", "Default", "CounterMine"}, function(mode) NoclipMode = mode end)
-AddDropdown(UniversalPage, "Click Teleport:", {"None", "Default", "CounterMine"}, function(mode) TeleportMode = mode end)
-AddKeybindButton(UniversalPage, "Бинд для Teleport:", Enum.KeyCode.T, "Teleport", function(key) TeleportKey = key end)
-AddToggle(UniversalPage, "WalkSpeed Boost (100)", false, function(state) 
+-- Вкладка Movement (Полностью переименована)
+AddToggle(MovementPage, "Infinite Jump", false, function(state) InfJumpEnabled = state end)
+AddToggle(MovementPage, "Включить Полет (Fly Bypass)", false, function(state) FlyEnabled = state end)
+AddSlider(MovementPage, "Скорость полета", 10, 200, 50, false, function(val) FlySpeed = val end)
+AddDropdown(MovementPage, "Click Teleport:", {"None", "Default", "CounterMine"}, function(mode) TeleportMode = mode end)
+AddKeybindButton(MovementPage, "Бинд для Teleport:", Enum.KeyCode.T, "Teleport", function(key) TeleportKey = key end)
+AddDropdown(MovementPage, "Режим Noclip:", {"None", "Default", "CounterMine"}, function(mode) NoclipMode = mode end)
+AddToggle(MovementPage, "WalkSpeed Boost (100)", false, function(state) 
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid.WalkSpeed = state and 100 or 16
     end
 end)
-AddToggle(UniversalPage, "Включить Jump Circles", false, function(state) JumpCircles_Enabled = state end)
-AddColorPalette(UniversalPage, "Цвет Jump Circles:", function(color) JumpCircles_Color = color end)
 
 -- Вкладка Vehicle
 AddSlider(VehiclePage, "Набор скорости (Multiplier)", 10, 250, 10, true, function(val) CarSpeedMultiplier = val end)
@@ -885,5 +1001,4 @@ AddKeybindButton(VehiclePage, "Бинд для FastStop:", Enum.KeyCode.X, "Vehi
 -- Вкладка Settings
 AddSlider(SettingsPage, "Размер текста ESP", 10, 30, 14, false, function(val) ESP_TextSize = val end)
 AddToggle(SettingsPage, "Проверка на команду (TeamCheck)", true, function(state) TeamCheckEnabled = state end)
-
 
