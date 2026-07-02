@@ -11,13 +11,7 @@ local ESP_Color = Color3.fromRGB(255, 0, 0)
 local ESP_TextSize = 14
 local ESP_Chams_Enabled = true
 
--- Настройки Трейсеров
-local ESP_Tracers_Enabled = false
-local ESP_Tracers_Color = Color3.fromRGB(255, 255, 255)
-local ESP_Tracers_Thickness = 1
-local ESP_Tracers_Transparency = 1.0
-
--- Настройки Аимбота и FOV
+-- Настройки Аимбота
 local AimbotEnabled = false
 local AimbotKey = Enum.KeyCode.E
 local IsMouseBind = false
@@ -25,15 +19,17 @@ local AimbotFOV = 200
 local AimbotPredict = 0.1
 local AimbotSpeed = 0.1
 
-local FOV_Visible = false
-local FOV_Color = Color3.fromRGB(255, 105, 180) 
-local FOV_Thickness = 1
-local FOV_Transparency = 1.0
-
 -- Настройки Movement
 local InfJumpEnabled = false
 local FlyEnabled = false
+local FlyMode = "Default" -- "Default" или "CounterMine"
 local FlySpeed = 50
+local FlyKey = Enum.KeyCode.F
+local IsBindingFlyKey = false
+
+local StrafeMode = "None" -- "None", "Default", "CounterMine"
+local StrafeSpeed = 25
+
 local NoclipMode = "None" 
 local TeleportMode = "None" 
 local TeleportKey = Enum.KeyCode.T 
@@ -63,7 +59,6 @@ local AutoShotKey = Enum.KeyCode.X
 local AutoShotDelay = 0.05
 local IsBindingAutoShotKey = false
 
--- Настройки Anti-Aim
 local AntiAim_Enabled = false
 local AntiAim_Mode = "Static"
 local AntiAim_Yaw = 180
@@ -80,15 +75,6 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
-
--- ==========================================
--- ИНИЦИАЛИЗАЦИЯ DRAWING КОМПОНЕНТОВ
--- ==========================================
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Filled = false
-FOVCircle.Sides = 64
-
-local TracerLines = {}
 
 -- ==========================================
 -- УТИЛИТЫ ДЛЯ СТИЛЯ
@@ -145,7 +131,7 @@ TweenService:Create(IntroFrame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.Eas
 TweenService:Create(IntroStroke, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 0}):Play()
 TweenService:Create(IntroText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
 
-task.wait(5)
+task.wait(4)
 
 TweenService:Create(IntroFrame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
 TweenService:Create(IntroStroke, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Transparency = 1}):Play()
@@ -216,7 +202,7 @@ local function CreatePage(name)
     Page.Size = UDim2.new(1, 0, 1, 0)
     Page.BackgroundTransparency = 1
     Page.ScrollBarThickness = 4
-    Page.CanvasSize = UDim2.new(0, 0, 2, 0) -- Фикс: даем пространство для скролла функций
+    Page.CanvasSize = UDim2.new(0, 0, 2.2, 0) -- Запас под все настройки
     Page.Visible = false
     Page.Parent = ContentFrame
     
@@ -363,7 +349,7 @@ local function AddDropdown(parentPage, text, options, callback)
         OptBtn.Text = opt
         OptBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         OptBtn.Font = Enum.Font.Gotham
-        OptBtn.TextSize = 12
+        OptBtn.TextSize = 11
         OptBtn.Parent = Frame
         AddCorner(OptBtn, 4)
 
@@ -408,28 +394,32 @@ local function AddKeybindButton(parentPage, text, defaultKey, typeOfBind, callba
         if typeOfBind == "Vehicle" then IsBindingStopKey = true 
         elseif typeOfBind == "Teleport" then IsBindingTPKey = true 
         elseif typeOfBind == "Silent" then IsBindingSilentKey = true 
-        elseif typeOfBind == "AutoShot" then IsBindingAutoShotKey = true end
+        elseif typeOfBind == "AutoShot" then IsBindingAutoShotKey = true 
+        elseif typeOfBind == "Fly" then IsBindingFlyKey = true end
         Btn.Text = "[Нажмите клавишу...]"
     end)
 
     UIS.InputBegan:Connect(function(input, gpe)
-        if typeOfBind == "Vehicle" and IsBindingStopKey and input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+        
+        if typeOfBind == "Vehicle" and IsBindingStopKey then
             IsBindingStopKey = false
             Btn.Text = "[" .. input.KeyCode.Name .. "]"
             callback(input.KeyCode)
-        end
-        if typeOfBind == "Teleport" and IsBindingTPKey and input.UserInputType == Enum.UserInputType.Keyboard then
+        elseif typeOfBind == "Teleport" and IsBindingTPKey then
             IsBindingTPKey = false
             Btn.Text = "[" .. input.KeyCode.Name .. "]"
             callback(input.KeyCode)
-        end
-        if typeOfBind == "Silent" and IsBindingSilentKey and input.UserInputType == Enum.UserInputType.Keyboard then
+        elseif typeOfBind == "Silent" and IsBindingSilentKey then
             IsBindingSilentKey = false
             Btn.Text = "[" .. input.KeyCode.Name .. "]"
             callback(input.KeyCode)
-        end
-        if typeOfBind == "AutoShot" and IsBindingAutoShotKey and input.UserInputType == Enum.UserInputType.Keyboard then
+        elseif typeOfBind == "AutoShot" and IsBindingAutoShotKey then
             IsBindingAutoShotKey = false
+            Btn.Text = "[" .. input.KeyCode.Name .. "]"
+            callback(input.KeyCode)
+        elseif typeOfBind == "Fly" and IsBindingFlyKey then
+            IsBindingFlyKey = false
             Btn.Text = "[" .. input.KeyCode.Name .. "]"
             callback(input.KeyCode)
         end
@@ -481,7 +471,7 @@ WidgetFrame.Name = "KeybindsWidget"
 WidgetFrame.Parent = ScreenGui
 WidgetFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 WidgetFrame.Position = UDim2.new(0.75, 0, 0.25, 0)
-WidgetFrame.Size = UDim2.new(0, 190, 0, 100)
+WidgetFrame.Size = UDim2.new(0, 190, 0, 110)
 WidgetFrame.Active = true
 WidgetFrame.Draggable = true 
 WidgetFrame.Visible = false
@@ -501,14 +491,13 @@ WidgetTitle.TextSize = 13
 local WidgetList = Instance.new("UIListLayout")
 WidgetList.Parent = WidgetFrame
 WidgetList.Padding = UDim.new(0, 2)
-WidgetList.SortOrder = Enum.SortOrder.LayoutOrder
 
 local WidgetAim = Instance.new("TextLabel")
 WidgetAim.Size = UDim2.new(1, 0, 0, 18)
 WidgetAim.BackgroundTransparency = 1
 WidgetAim.TextXAlignment = Enum.TextXAlignment.Left
 WidgetAim.Font = Enum.Font.Gotham
-WidgetAim.TextSize = 12
+WidgetAim.TextSize = 11
 WidgetAim.Parent = WidgetFrame
 
 local WidgetAutoShot = Instance.new("TextLabel")
@@ -516,13 +505,21 @@ WidgetAutoShot.Size = UDim2.new(1, 0, 0, 18)
 WidgetAutoShot.BackgroundTransparency = 1
 WidgetAutoShot.TextXAlignment = Enum.TextXAlignment.Left
 WidgetAutoShot.Font = Enum.Font.Gotham
-WidgetAutoShot.TextSize = 12
+WidgetAutoShot.TextSize = 11
 WidgetAutoShot.Parent = WidgetFrame
+
+local WidgetFly = Instance.new("TextLabel")
+WidgetFly.Size = UDim2.new(1, 0, 0, 18)
+WidgetFly.BackgroundTransparency = 1
+WidgetFly.TextXAlignment = Enum.TextXAlignment.Left
+WidgetFly.Font = Enum.Font.Gotham
+WidgetFly.TextSize = 11
+WidgetFly.Parent = WidgetFrame
 
 -- Активация главного меню после окончания интро
 task.spawn(function()
-    task.wait(6.1) -- Ждем полного окончания 6-секундного интро
-    Pages["Комбат"].Visible = true -- Включаем первую вкладку по умолчанию
+    task.wait(5.1)
+    Pages["Комбат"].Visible = true
     MainFrame.Visible = true
     WidgetFrame.Visible = true
 end)
@@ -535,7 +532,7 @@ local function GetClosestPlayerToMuzzle()
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("HumanoidRootPart") then
             if TeamCheckEnabled and v.Team == LocalPlayer.Team then continue end
-            if v.Character.Humanoid.Health <= 0 then continue end
+            if v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health <= 0 then continue end
             
             if SilentVisibleCheck then
                 local parts = Camera:GetPartsObscuringTarget({v.Character.Head.Position}, {LocalPlayer.Character, v.Character})
@@ -580,7 +577,7 @@ end)
 setreadonly(gmt, true)
 
 -- ==========================================
--- ЛОГИКА СИСТЕМ (ESP & ТРЕЙСЕРЫ)
+-- ЛОГИКА СИСТЕМ (ESP & КРУГИ)
 -- ==========================================
 local EspObjects = {}
 
@@ -588,11 +585,6 @@ local function ClearESP(playerName)
     if EspObjects[playerName] then
         for _, obj in pairs(EspObjects[playerName]) do if obj then obj:Destroy() end end
         EspObjects[playerName] = nil
-    end
-    if TracerLines[playerName] then
-        TracerLines[playerName].Visible = false
-        TracerLines[playerName]:Destroy()
-        TracerLines[playerName] = nil
     end
 end
 
@@ -646,7 +638,7 @@ local function ApplyESP(player)
                 billboard.Enabled = ESP_Enabled
                 txt.TextColor3 = ESP_Color
                 txt.TextSize = ESP_TextSize
-                task.wait(0.3)
+                task.wait(0.4)
             end
         end)
     end
@@ -691,7 +683,7 @@ local function CreateJumpCircle(position)
     end)
 end
 
--- ОБРАБОТКА ВВОДА
+-- ОБРАБОТКА ВВОДА И КЛАВИШ БИНДОВ
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     
@@ -700,6 +692,9 @@ UIS.InputBegan:Connect(function(input, gpe)
     end
     if input.KeyCode == AutoShotKey and not IsBindingAutoShotKey then
         AutoShotEnabled = not AutoShotEnabled
+    end
+    if input.KeyCode == FlyKey and not IsBindingFlyKey then
+        FlyEnabled = not FlyEnabled
     end
 
     -- ТЕЛЕПОРТ
@@ -759,7 +754,7 @@ task.spawn(function()
     end
 end)
 
--- ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ
+-- ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ REFRESH И ФУНКЦИЙ МУВМЕНТА
 RunService.RenderStepped:Connect(function()
     WidgetAim.Text = "  [" .. SilentAimKey.Name .. "] Silent Aim: " .. (SilentAimEnabled and "ACTIVE" or "DISABLED")
     WidgetAim.TextColor3 = SilentAimEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
@@ -767,52 +762,21 @@ RunService.RenderStepped:Connect(function()
     WidgetAutoShot.Text = "  [" .. AutoShotKey.Name .. "] AutoShot: " .. (AutoShotEnabled and "ACTIVE" or "DISABLED")
     WidgetAutoShot.TextColor3 = AutoShotEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
 
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local root = p.Character.HumanoidRootPart
-            local Pos, OnScreen = Camera:WorldToScreenPoint(root.Position)
-            local passesTeamCheck = not TeamCheckEnabled or (p.Team ~= LocalPlayer.Team)
-            
-            if OnScreen and ESP_Tracers_Enabled and passesTeamCheck and ESP_Enabled then
-                if not TracerLines[p.Name] then
-                    TracerLines[p.Name] = Drawing.new("Line")
-                end
-                local line = TracerLines[p.Name]
-                line.Visible = true
-                line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                line.To = Vector2.new(Pos.X, Pos.Y)
-                line.Color = ESP_Tracers_Color
-                line.Thickness = ESP_Tracers_Thickness
-                line.Transparency = ESP_Tracers_Transparency
-            else
-                if TracerLines[p.Name] then TracerLines[p.Name].Visible = false end
-            end
-        else
-            if TracerLines[p.Name] then TracerLines[p.Name].Visible = false end
-        end
-    end
-
-    if FOV_Visible then
-        FOVCircle.Visible = true
-        FOVCircle.Position = Vector2.new(UIS:GetMouseLocation().X, UIS:GetMouseLocation().Y)
-        FOVCircle.Radius = AimbotFOV
-        FOVCircle.Color = FOV_Color
-        FOVCircle.Thickness = FOV_Thickness
-        FOVCircle.Opacity = FOV_Transparency
-    else
-        FOVCircle.Visible = false
-    end
+    WidgetFly.Text = "  [" .. FlyKey.Name .. "] Fly Bypass: " .. (FlyEnabled and "ACTIVE" or "DISABLED")
+    WidgetFly.TextColor3 = FlyEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
 
     local Character = LocalPlayer.Character
     if not Character then return end
     local Root = Character:FindFirstChild("HumanoidRootPart")
     local Humanoid = Character:FindFirstChild("Humanoid")
+    if not Root or not Humanoid then return end
     
-    if BunnyHopEnabled and Humanoid and Humanoid.FloorMaterial ~= Enum.Material.Air then 
+    if BunnyHopEnabled and Humanoid.FloorMaterial ~= Enum.Material.Air then 
         Humanoid.Jump = true 
     end
 
-    if AntiAim_Enabled and Root and Humanoid and Humanoid.Health > 0 then
+    -- ЛОГИКА АНТИ-АИМА
+    if AntiAim_Enabled and Humanoid.Health > 0 then
         if not (Humanoid.SeatPart and Humanoid.SeatPart:IsA("VehicleSeat")) then
             local currentYaw = math.rad(AntiAim_Yaw)
             local currentPitch = math.rad(AntiAim_Pitch)
@@ -824,12 +788,11 @@ RunService.RenderStepped:Connect(function()
                 currentYaw = math.rad(math.random(-180, 180))
                 currentPitch = math.rad(math.random(-45, 45))
             end
-            
-            local currentPos = Root.Position
-            Root.CFrame = CFrame.new(currentPos) * CFrame.Angles(currentPitch, currentYaw, 0)
+            Root.CFrame = CFrame.new(Root.Position) * CFrame.Angles(currentPitch, currentYaw, 0)
         end
     end
 
+    -- ЛОГИКА ОБЫЧНОГО АИМБОТА
     if AimbotEnabled then
         local isPressed = IsMouseBind and UIS:IsMouseButtonPressed(AimbotKey) or UIS:IsKeyDown(AimbotKey)
         if isPressed then
@@ -841,44 +804,73 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    if Root and Humanoid then
-        if NoclipMode == "Default" then
-            for _, part in pairs(Character:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
-        elseif NoclipMode == "CounterMine" then
-            if Humanoid.MoveDirection.Magnitude > 0 then
-                local raycastParams = RaycastParams.new()
-                raycastParams.FilterDescendantsInstances = {Character}
-                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-                
-                local raycastResult = workspace:Raycast(Root.Position, Humanoid.MoveDirection * 4, raycastParams)
-                if raycastResult and raycastResult.Instance then
-                    local pushTarget = Root.Position + (Humanoid.MoveDirection * 1.8)
-                    Root.CFrame = Root.CFrame:Lerp(CFrame.new(pushTarget), 0.4)
-                end
+    -- ЛОГИКА NOCLIP
+    if NoclipMode == "Default" then
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    elseif NoclipMode == "CounterMine" then
+        if Humanoid.MoveDirection.Magnitude > 0 then
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterDescendantsInstances = {Character}
+            raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+            
+            local raycastResult = workspace:Raycast(Root.Position, Humanoid.MoveDirection * 4, raycastParams)
+            if raycastResult and raycastResult.Instance then
+                local pushTarget = Root.Position + (Humanoid.MoveDirection * 1.8)
+                Root.CFrame = Root.CFrame:Lerp(CFrame.new(pushTarget), 0.4)
             end
         end
     end
     
-    if FlyEnabled and Root and Humanoid then
+    -- ЛОГИКА СТРЕЙФОВ (STRAFE)
+    if StrafeMode ~= "None" and Humanoid.MoveDirection.Magnitude > 0 and Humanoid.FloorMaterial == Enum.Material.Air then
+        local moveDir = Humanoid.MoveDirection
+        if StrafeMode == "Default" then
+            -- Добавляет плавное ускорение в сторону стрейфа
+            Root.AssemblyLinearVelocity = Vector3.new(moveDir.X * StrafeSpeed, Root.AssemblyLinearVelocity.Y, moveDir.Z * StrafeSpeed)
+        elseif StrafeMode == "CounterMine" then
+            -- Перебивает задержку сервера импульсным стрейфом
+            local currentVel = Root.AssemblyLinearVelocity
+            Root.AssemblyLinearVelocity = Vector3.new(moveDir.X * (StrafeSpeed * 1.2), currentVel.Y, moveDir.Z * (StrafeSpeed * 1.2))
+            -- Микро-сдвиг для принудительной синхронизации физики античитом
+            Root.CFrame = Root.CFrame + (moveDir * 0.05)
+        end
+    end
+
+    -- УЛУЧШЕННАЯ ЛОГИКА ПОЛЕТА С ОБХОДОМ COUNTERMINE
+    if FlyEnabled then
         local flyVel = Vector3.new(0, 0, 0)
         if UIS:IsKeyDown(Enum.KeyCode.W) then flyVel = flyVel + Camera.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.S) then flyVel = flyVel - Camera.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.A) then flyVel = flyVel - Camera.CFrame.RightVector end
         if UIS:IsKeyDown(Enum.KeyCode.D) then flyVel = flyVel + Camera.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) strolling = flyVel + Vector3.new(0, 1, 0) end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then flyVel = flyVel + Vector3.new(0, 1, 0) end
         if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then flyVel = flyVel - Vector3.new(0, 1, 0) end
         
         Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
-        if flyVel.Magnitude > 0 then
-            Root.AssemblyLinearVelocity = flyVel.Unit * FlySpeed
-        else
-            Root.AssemblyLinearVelocity = Vector3.new(0, 0.1, 0)
+        
+        if FlyMode == "Default" then
+            if flyVel.Magnitude > 0 then
+                Root.AssemblyLinearVelocity = flyVel.Unit * FlySpeed
+            else
+                Root.AssemblyLinearVelocity = Vector3.new(0, 0.1, 0)
+            end
+        elseif FlyMode == "CounterMine" then
+            -- Обход детекта зависания: принудительно обнуляем гравитационное падение и создаем микро-вибрацию по оси Y
+            local jitterY = math.sin(tick() * 60) * 0.08
+            if flyVel.Magnitude > 0 then
+                local resVel = flyVel.Unit * FlySpeed
+                Root.AssemblyLinearVelocity = Vector3.new(resVel.X, resVel.Y + jitterY, resVel.Z)
+            else
+                -- Имитация свободного падения с микроскопической скоростью, чтобы античит думал, что игрок падает
+                Root.AssemblyLinearVelocity = Vector3.new(0, -0.05 + jitterY, 0)
+            end
         end
     end
 
-    if Humanoid and Humanoid.SeatPart and Humanoid.SeatPart:IsA("VehicleSeat") then
+    -- ЛОГИКА МАШИН
+    if Humanoid.SeatPart and Humanoid.SeatPart:IsA("VehicleSeat") then
         local seat = Humanoid.SeatPart
         seat.MaxSpeed = CarMaxSpeedLimit
         
@@ -887,12 +879,9 @@ RunService.RenderStepped:Connect(function()
             seat.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             return
         end
-        
         if seat.Steer ~= 0 then
-            local turnDirection = -seat.Steer
-            seat.AssemblyAngularVelocity = Vector3.new(0, turnDirection * (CarSteerSensitivity * 2.5), 0)
+            seat.AssemblyAngularVelocity = Vector3.new(0, -seat.Steer * (CarSteerSensitivity * 2.5), 0)
         end
-        
         if seat.Throttle ~= 0 then
             local direction = seat.CFrame.LookVector
             if seat.Throttle < 0 then direction = -direction end
@@ -907,7 +896,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ОТСЛЕЖИВАНИЕ ПРЫЖКА ДЛЯ КРУГОВ
+-- ОТСЛЕЖИВАНИЕ ПРЫЖКА ДЛЯ КРУГОВ И INFJUMP
 UIS.JumpRequest:Connect(function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local Hum = LocalPlayer.Character.Humanoid
@@ -939,10 +928,6 @@ AddToggle(CombatPage, "Бинд на [Mouse2] / иначе [E]", false, function
     IsMouseBind = state
     AimbotKey = state and Enum.UserInputType.MouseButton2 or Enum.KeyCode.E 
 end)
-AddToggle(CombatPage, "Отображать круг FOV", false, function(state) FOV_Visible = state end)
-AddSlider(CombatPage, "Толщина линий FOV", 1, 5, 1, false, function(val) FOV_Thickness = val end)
-AddSlider(CombatPage, "Прозрачность FOV", 1, 10, 10, true, function(val) FOV_Transparency = val end)
-AddColorPalette(CombatPage, "Цвет круга FOV:", function(color) FOV_Color = color end)
 
 -- Вкладка RageBot
 AddToggle(RagePage, "Включить Silent Aim", false, function(state) SilentAimEnabled = state end)
@@ -962,17 +947,19 @@ AddSlider(RagePage, "Амплитуда Jitter", 5, 180, 45, false, function(val
 AddToggle(VisualPage, "Включить ESP (Никнеймы)", false, function(state) ESP_Enabled = state RefreshESPState() end)
 AddToggle(VisualPage, "Включить Chams (Тело сквозь стены)", true, function(state) ESP_Chams_Enabled = state end)
 AddColorPalette(VisualPage, "Цвет ESP:", function(color) ESP_Color = color end)
-AddToggle(VisualPage, "Включить Tracers (Линии к телу)", false, function(state) ESP_Tracers_Enabled = state end)
-AddSlider(VisualPage, "Толщина Трейсеров", 1, 5, 1, false, function(val) ESP_Tracers_Thickness = val end)
-AddSlider(VisualPage, "Прозрачность Трейсеров", 1, 10, 10, true, function(val) ESP_Tracers_Transparency = val end)
-AddColorPalette(VisualPage, "Цвет Трейсеров:", function(color) ESP_Tracers_Color = color end)
 AddToggle(VisualPage, "Включить Jump Circles", false, function(state) JumpCircles_Enabled = state end)
 AddColorPalette(VisualPage, "Цвет Jump Circles:", function(color) JumpCircles_Color = color end)
 
 -- Вкладка Movement
-AddToggle(MovementPage, "Infinite Jump", false, function(state) InfJumpEnabled = state end)
-AddToggle(MovementPage, "Включить Полет (Fly Bypass)", false, function(state) FlyEnabled = state end)
+AddToggle(MovementPage, "Включить Полет (Fly)", false, function(state) FlyEnabled = state end)
+AddDropdown(MovementPage, "Режим обхода Fly:", {"Default", "CounterMine"}, function(mode) FlyMode = mode end)
 AddSlider(MovementPage, "Скорость полета", 10, 200, 50, false, function(val) FlySpeed = val end)
+AddKeybindButton(MovementPage, "Бинд клавиши Fly:", Enum.KeyCode.F, "Fly", function(key) FlyKey = key end)
+
+AddDropdown(MovementPage, "Режим Strafe (Стрейфы):", {"None", "Default", "CounterMine"}, function(mode) StrafeMode = mode end)
+AddSlider(MovementPage, "Скорость Стрейфов", 10, 100, 25, false, function(val) StrafeSpeed = val end)
+
+AddToggle(MovementPage, "Infinite Jump", false, function(state) InfJumpEnabled = state end)
 AddDropdown(MovementPage, "Click Teleport:", {"None", "Default", "CounterMine"}, function(mode) TeleportMode = mode end)
 AddKeybindButton(MovementPage, "Бинд для Teleport:", Enum.KeyCode.T, "Teleport", function(key) TeleportKey = key end)
 AddDropdown(MovementPage, "Режим Noclip:", {"None", "Default", "CounterMine"}, function(mode) NoclipMode = mode end)
