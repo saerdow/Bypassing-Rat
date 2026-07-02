@@ -30,7 +30,7 @@ local FOV_Color = Color3.fromRGB(255, 105, 180)
 local FOV_Thickness = 1
 local FOV_Transparency = 1.0
 
--- Настройки Movement (Бывший Universal)
+-- Настройки Movement
 local InfJumpEnabled = false
 local FlyEnabled = false
 local FlySpeed = 50
@@ -121,11 +121,10 @@ IntroFrame.Parent = IntroGui
 IntroFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 IntroFrame.Size = UDim2.new(0, 320, 0, 140)
 IntroFrame.Position = UDim2.new(0.5, -160, 0.5, -70)
-IntroFrame.BackgroundTransparency = 1 -- Начинаем невидимым для плавного появления
+IntroFrame.BackgroundTransparency = 1
 AddCorner(IntroFrame, 14)
 AddGradient(IntroFrame, Color3.fromRGB(35, 35, 45), Color3.fromRGB(15, 15, 20))
 
--- Граница с неоновым свечением
 local IntroStroke = Instance.new("UIStroke")
 IntroStroke.Thickness = 1.5
 IntroStroke.Color = Color3.fromRGB(255, 105, 180)
@@ -142,21 +141,19 @@ IntroText.TextTransparency = 1
 IntroText.Font = Enum.Font.GothamBold
 IntroText.TextSize = 20
 
--- Анимация плавного появления интро (1 секунда)
 TweenService:Create(IntroFrame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
 TweenService:Create(IntroStroke, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 0}):Play()
 TweenService:Create(IntroText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
 
-task.wait(5) -- Держим окно (общее время с анимацией выхода составит 6 секунд)
+task.wait(5)
 
--- Анимация плавного исчезновения интро (1 секунда)
 TweenService:Create(IntroFrame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
 TweenService:Create(IntroStroke, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Transparency = 1}):Play()
 local fadeOutTween = TweenService:Create(IntroText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextTransparency = 1})
 fadeOutTween:Play()
 
 fadeOutTween.Completed:Connect(function()
-    IntroGui:Destroy() -- Полностью удаляем интро из памяти
+    IntroGui:Destroy()
 end)
 
 -- ==========================================
@@ -175,7 +172,7 @@ MainFrame.Position = UDim2.new(0.35, 0, 0.25, 0)
 MainFrame.Size = UDim2.new(0, 500, 0, 520) 
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = false -- Скрываем до окончания интро
+MainFrame.Visible = false
 AddCorner(MainFrame, 12)
 AddGradient(MainFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -218,7 +215,8 @@ local function CreatePage(name)
     local Page = Instance.new("ScrollingFrame")
     Page.Size = UDim2.new(1, 0, 1, 0)
     Page.BackgroundTransparency = 1
-    Page.ScrollBarThickness = 2
+    Page.ScrollBarThickness = 4
+    Page.CanvasSize = UDim2.new(0, 0, 2, 0) -- Фикс: даем пространство для скролла функций
     Page.Visible = false
     Page.Parent = ContentFrame
     
@@ -233,10 +231,9 @@ end
 local CombatPage = CreatePage("Комбат")
 local RagePage = CreatePage("RageBot")
 local VisualPage = CreatePage("Visual") 
-local MovementPage = CreatePage("Movement") -- Изменено с Universal на Movement
+local MovementPage = CreatePage("Movement") 
 local VehiclePage = CreatePage("Vehicle")
 local SettingsPage = CreatePage("Settings")
-Pages["Комбат"].Visible = true 
 
 local function CreateTabButton(name, posIdx)
     local Btn = Instance.new("TextButton")
@@ -259,13 +256,13 @@ end
 CreateTabButton("Комбат", 0)
 CreateTabButton("RageBot", 1) 
 CreateTabButton("Visual", 2) 
-CreateTabButton("Movement", 3) -- Переименовано на кнопке меню
+CreateTabButton("Movement", 3) 
 CreateTabButton("Vehicle", 4)
 CreateTabButton("Settings", 5)
 
 local function AddToggle(parentPage, text, default, callback)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, 0, 0, 35)
+    Btn.Size = UDim2.new(1, -10, 0, 35)
     Btn.BackgroundColor3 = default and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(50, 50, 60)
     Btn.Text = "  " .. text
     Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -285,7 +282,7 @@ end
 
 local function AddSlider(parentPage, text, min, max, default, isFloat, callback)
     local SliderFrame = Instance.new("Frame")
-    SliderFrame.Size = UDim2.new(1, 0, 0, 45)
+    SliderFrame.Size = UDim2.new(1, -10, 0, 45)
     SliderFrame.BackgroundTransparency = 1
     SliderFrame.Parent = parentPage
 
@@ -344,7 +341,7 @@ end
 
 local function AddDropdown(parentPage, text, options, callback)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, 0, 0, 40)
+    Frame.Size = UDim2.new(1, -10, 0, 40)
     Frame.BackgroundTransparency = 1
     Frame.Parent = parentPage
 
@@ -383,7 +380,7 @@ end
 
 local function AddKeybindButton(parentPage, text, defaultKey, typeOfBind, callback)
     local BindFrame = Instance.new("Frame")
-    BindFrame.Size = UDim2.new(1, 0, 0, 35)
+    BindFrame.Size = UDim2.new(1, -10, 0, 35)
     BindFrame.BackgroundTransparency = 1
     BindFrame.Parent = parentPage
 
@@ -441,7 +438,7 @@ end
 
 local function AddColorPalette(parentPage, titleText, callback)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, 0, 0, 40)
+    Frame.Size = UDim2.new(1, -10, 0, 40)
     Frame.BackgroundTransparency = 1
     Frame.Parent = parentPage
 
@@ -487,7 +484,7 @@ WidgetFrame.Position = UDim2.new(0.75, 0, 0.25, 0)
 WidgetFrame.Size = UDim2.new(0, 190, 0, 100)
 WidgetFrame.Active = true
 WidgetFrame.Draggable = true 
-WidgetFrame.Visible = false -- Скрываем до окончания интро
+WidgetFrame.Visible = false
 AddCorner(WidgetFrame, 10)
 AddGradient(WidgetFrame, Color3.fromRGB(40, 40, 50), Color3.fromRGB(20, 20, 25))
 
@@ -522,9 +519,10 @@ WidgetAutoShot.Font = Enum.Font.Gotham
 WidgetAutoShot.TextSize = 12
 WidgetAutoShot.Parent = WidgetFrame
 
--- Активация главного меню после интро
+-- Активация главного меню после окончания интро
 task.spawn(function()
-    task.wait(1) -- Ждем пока интро полностью растворится
+    task.wait(6.1) -- Ждем полного окончания 6-секундного интро
+    Pages["Комбат"].Visible = true -- Включаем первую вкладку по умолчанию
     MainFrame.Visible = true
     WidgetFrame.Visible = true
 end)
@@ -769,7 +767,6 @@ RunService.RenderStepped:Connect(function()
     WidgetAutoShot.Text = "  [" .. AutoShotKey.Name .. "] AutoShot: " .. (AutoShotEnabled and "ACTIVE" or "DISABLED")
     WidgetAutoShot.TextColor3 = AutoShotEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(120, 120, 140)
 
-    -- Рендеринг Трейсеров
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local root = p.Character.HumanoidRootPart
@@ -815,7 +812,6 @@ RunService.RenderStepped:Connect(function()
         Humanoid.Jump = true 
     end
 
-    -- ЛОГИКА ANTI-AIM
     if AntiAim_Enabled and Root and Humanoid and Humanoid.Health > 0 then
         if not (Humanoid.SeatPart and Humanoid.SeatPart:IsA("VehicleSeat")) then
             local currentYaw = math.rad(AntiAim_Yaw)
@@ -871,7 +867,7 @@ RunService.RenderStepped:Connect(function()
         if UIS:IsKeyDown(Enum.KeyCode.S) then flyVel = flyVel - Camera.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.A) then flyVel = flyVel - Camera.CFrame.RightVector end
         if UIS:IsKeyDown(Enum.KeyCode.D) then flyVel = flyVel + Camera.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then flyVel = flyVel + Vector3.new(0, 1, 0) end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) strolling = flyVel + Vector3.new(0, 1, 0) end
         if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then flyVel = flyVel - Vector3.new(0, 1, 0) end
         
         Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
@@ -952,14 +948,10 @@ AddColorPalette(CombatPage, "Цвет круга FOV:", function(color) FOV_Colo
 AddToggle(RagePage, "Включить Silent Aim", false, function(state) SilentAimEnabled = state end)
 AddToggle(RagePage, "Проверка стен (Visible Check)", true, function(state) SilentVisibleCheck = state end)
 AddKeybindButton(RagePage, "Переключатель Silent Aim:", Enum.KeyCode.E, "Silent", function(key) SilentAimKey = key end)
-
 AddToggle(RagePage, "Включить AutoShot", false, function(state) AutoShotEnabled = state end)
 AddSlider(RagePage, "Скорость выстрелов AutoShot", 1, 20, 5, true, function(val) AutoShotDelay = val / 100 end)
 AddKeybindButton(RagePage, "Переключатель AutoShot:", Enum.KeyCode.X, "AutoShot", function(key) AutoShotKey = key end)
-
 AddToggle(RagePage, "Включить BunnyHop", false, function(state) BunnyHopEnabled = state end)
-
--- Настройки Anti-Aim
 AddToggle(RagePage, "Включить Anti-Aim", false, function(state) AntiAim_Enabled = state end)
 AddDropdown(RagePage, "Режим Anti-Aim:", {"Static", "Jitter", "Randomize"}, function(mode) AntiAim_Mode = mode end)
 AddSlider(RagePage, "Базовый угол Yaw", 0, 360, 180, false, function(val) AntiAim_Yaw = val end)
@@ -977,7 +969,7 @@ AddColorPalette(VisualPage, "Цвет Трейсеров:", function(color) ESP_
 AddToggle(VisualPage, "Включить Jump Circles", false, function(state) JumpCircles_Enabled = state end)
 AddColorPalette(VisualPage, "Цвет Jump Circles:", function(color) JumpCircles_Color = color end)
 
--- Вкладка Movement (Полностью переименована)
+-- Вкладка Movement
 AddToggle(MovementPage, "Infinite Jump", false, function(state) InfJumpEnabled = state end)
 AddToggle(MovementPage, "Включить Полет (Fly Bypass)", false, function(state) FlyEnabled = state end)
 AddSlider(MovementPage, "Скорость полета", 10, 200, 50, false, function(val) FlySpeed = val end)
@@ -1001,4 +993,3 @@ AddKeybindButton(VehiclePage, "Бинд для FastStop:", Enum.KeyCode.X, "Vehi
 -- Вкладка Settings
 AddSlider(SettingsPage, "Размер текста ESP", 10, 30, 14, false, function(val) ESP_TextSize = val end)
 AddToggle(SettingsPage, "Проверка на команду (TeamCheck)", true, function(state) TeamCheckEnabled = state end)
-
